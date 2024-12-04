@@ -1,0 +1,23 @@
+<!-- TODO: Header? -->
+<body>
+    <div class="main-content">
+        <h1>Create a New Poll</h1>
+        <form action="/createPoll" method="POST">
+            <div class="form-input-container">
+                <label for="question">Poll Question:</label>
+                <input type="text" id="question" name="question" required>
+            </div>
+            <div class="form-input-container">
+                <label for="option1">Option 1:</label>
+                <input type="text" id="option1" name="options[Option 1]" required>
+            </div>
+            <div class="form-input-container">
+                <label for="option2">Option 2:</label>
+                <input type="text" id="option2" name="options[Option 2]" required>
+            </div>
+            <!-- If necessary, you can add more options similar to how they were added above -->
+            <button type="submit" class="action-button full-width">Create Poll</button>
+        </form>
+    </div>
+</body>
+</html>

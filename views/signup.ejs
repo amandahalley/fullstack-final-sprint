@@ -1,0 +1,26 @@
+<!-- TODO: Header? -->
+
+<div class="main-content">
+    <h1>Sign Up</h1>
+    <form action="/signup" method="post" style="width: 300px;">
+        <% if (errorMessage) { %>
+            <p class="error-message"><%= errorMessage %></p>
+        <% } %>
+        <div class="form-input-container">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-input-container">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="action-button full-width">Sign Up</button>
+    </form>
+    <p style="font-size: 12px; margin-top: 30px;">
+        Already have an account? 
+        <a href="/login" class="register-link">Log in!</a>
+    </p>
+</div>
+
+</body>
+</html>
