@@ -11,6 +11,24 @@ const MONGO_URI = 'mongodb://localhost:27017/FinalSprint';
 const app = express();
 expressWs(app);
 
+const userSchema = new mongoose.Schema({
+    username: {type: String, required: true},
+    password: {type: String, required: true}
+})
+
+const pollSchema = new mongoose.Schema({
+    question: {type:String, required: true},
+    options: [{
+        question: {type: String, required: true},
+    
+        votes: {type: Number, required: true, default: 0}
+    }]
+});
+
+const User = mongoose.model('User', userSchema);
+const Poll = mongoose.model('Poll', pollSchema);
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
