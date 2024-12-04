@@ -7,7 +7,7 @@ const bcrypt = require('bcrypt');
 
 const PORT = 3000;
 //TODO: Update this URI to match your own MongoDB setup
-const MONGO_URI = 'mongodb://localhost:27017/keyin_test';
+const MONGO_URI = 'mongodb://localhost:27017/FinalSprint';
 const app = express();
 expressWs(app);
 
@@ -34,6 +34,7 @@ app.ws('/ws', (socket, request) => {
     });
 
     socket.on('close', async (message) => {
+        connectedClients = connectedClients.filter(client => client !== socket);
         
     });
 });
@@ -135,3 +136,8 @@ async function onNewVote(pollId, selectedOption) {
         console.error('Error updating poll:', error);
     }
 }
+
+//Connection to mongo database
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("Connected to MongoDB"))
+    .catch(err => console.error("Error connecting to MongoDB:", err));
