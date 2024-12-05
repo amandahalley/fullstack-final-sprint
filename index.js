@@ -163,8 +163,17 @@ app.post('/createPoll', async (request, response) => {
     const { question, options } = request.body;
     const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
 
+    //checks at least to options are provided and question
+    if (!question || !options || Object.keys(options).length < 2 ) {
+        return response.render('createPoll', {errorMessage: "Must contain a question and at least 2 options."})
+    }
+
+    //sends error message if error occurs creating poll and redirects to dashboard
     const pollCreationError = onCreateNewPoll(question, formattedOptions);
-    //TODO: If an error occurs, what should we do?
+    if (pollCreationError) {
+        return response.render('createPoll', {errorMessage: "Error creating poll.", session: request.session});
+    }
+    response.redirect('/dashboard');
 });
 
 mongoose.connect(MONGO_URI)
