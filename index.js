@@ -189,16 +189,18 @@ mongoose.connect(MONGO_URI)
  */
 async function onCreateNewPoll(question, pollOptions) {
     try {
-        //TODO: Save the new poll to MongoDB
+        const newPoll = new Polls ({
+            question,
+            options: pollOptions
+        });
+        //save poll to database
+        await newPoll.save();
+        return true; //if creation was successfull
     }
     catch (error) {
         console.error(error);
         return "Error creating the poll, please try again";
     }
-
-    //TODO: Tell all connected sockets that a new poll was added
-
-    return null;
 }
 
 /**
