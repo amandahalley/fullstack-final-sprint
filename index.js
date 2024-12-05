@@ -26,7 +26,7 @@ const pollSchema = new mongoose.Schema({
 });
 
 const User = mongoose.model('User', userSchema);
-const Poll = mongoose.model('Poll', pollSchema);
+const Polls = mongoose.model('Poll', pollSchema);
 
 
 app.use(express.json());
@@ -50,23 +50,27 @@ app.ws('/ws', (socket, request) => {
         const data = JSON.parse(message);
         
     });
-
-    socket.on('close', async (message) => {
+    //This should remove disconnected client
+    socket.on('close', async () => {
         connectedClients = connectedClients.filter(client => client !== socket);
         
     });
 });
 
 app.get('/', async (request, response) => {
+
     if (request.session.user?.id) {
         return response.redirect('/dashboard');
     }
 
-    response.render('index/unauthenticatedIndex', {});
+    //get polls from mongo database
+    const totalPolls = await Polls.countDocuments();
+
+    response.render('index/unauthenticatedIndex', {totalPolls, session: request.session});
 });
 
 app.get('/login', async (request, response) => {
-    
+    response.render("login");
 });
 
 app.post('/login', async (request, response) => {
