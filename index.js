@@ -10,6 +10,7 @@ const PORT = 3000;
 const MONGO_URI = 'mongodb://localhost:27017/FinalSprint';
 const app = express();
 expressWs(app);
+const SALT_ROUNDS = 10;
 
 const userSchema = new mongoose.Schema({
     username: {type: String, required: true},
@@ -74,7 +75,23 @@ app.get('/login', async (request, response) => {
 });
 
 app.post('/login', async (request, response) => {
-    
+    const {username, password} = request.body;
+
+    //checks if username exists
+    const user = await User.findOne({username});
+    if (!user) {
+        return response.render('login', {errorMessage: "Username does not exist, please try again."});
+    }
+
+    //checks if password is correct
+    const passwordCorrect = await bcrypt.compare(password, user.password);
+    if (!passwordCorrect) {
+        return response.render('login', {errorMessage: "Invalid password."})
+    }
+
+    //redirects to authenticatedIndex if username and password is correct.
+    request.session.user = {id: user._id, username: user.username}
+    response.redirect('/authenticatedIndex');
 });
 
 app.get('/signup', async (request, response) => {
@@ -83,6 +100,33 @@ app.get('/signup', async (request, response) => {
     }
 
     return response.render('signup', { errorMessage: null });
+});
+
+app.post('/signup', async (request, response) => {
+    const {username, password} = request.body;
+    
+    //check for existing username
+    const userExists = await User.findOne({ username});
+    if (userExists) {
+        return response.status(400).render('Signup', {errorMessage: "Username already exists."})
+    }
+
+    try {
+        //hash password with SALT_ROUNDS
+        const hashPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+        //create & save the new user
+        const newUser = new User({username, password: hashPassword});
+        await newUser.save();
+        request.session.user = {id: newUser._id, username: newUser.username};
+
+        //Redirect to dashboard once created
+        response.redirect('/dashboard');
+    } catch (error) {
+        console.error("Signup error: ", error);
+        response.status(500).render('signup', {errorMessage: "Server error"})
+    }
+
 });
 
 app.get('/dashboard', async (request, response) => {
