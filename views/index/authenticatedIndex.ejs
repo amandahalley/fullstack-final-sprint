@@ -2,6 +2,10 @@
 <div class="main-content">
     <h1>Active Polls</h1>
     <!-- This is an example of how you can render the polls on the page, you're welcome to keep it or change it if you wish. This page isn't fully complete though -->
+    <!-- added logic for message if no polls are avaiable -->
+    <% if (polls.length === 0) { %>
+        <p>There are currently no polls available, please check back later.</p>
+    <% } else { %>
     <ul id="polls">
         <% polls.forEach((poll) => { %>
             <li class="poll-container" id="<%= poll.id %>">
@@ -24,6 +28,7 @@
             </li>
         <% }) %>
     </ul>
+    <% } %>
 </div>
 <script src="/frontend.js" type="application/javascript"></script>
 </body>
