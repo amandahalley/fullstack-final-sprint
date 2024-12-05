@@ -94,6 +94,16 @@ app.post('/login', async (request, response) => {
     response.redirect('/authenticatedIndex');
 });
 
+app.get('/authenticatedIndex', async (request, response) => {
+    //check if user is logged in, redirect to home page if not
+    if (!request.session.user?.id) {
+        return response.redirect('/');
+    }
+    //get all polls and display them
+    const polls = await Polls.find();
+    response.render('index/authenticatedIndex', { polls, session: request.session });
+});
+
 //Log out
 app.post('/logout', async (request, response) => {
     request.session.destroy(() => {
@@ -111,7 +121,9 @@ app.get('/signup', async (request, response) => {
 
 app.post('/signup', async (request, response) => {
     const {username, password} = request.body;
-    
+    console.log('Username:', username);
+    console.log('Password:', password);
+
     //check for existing username
     const userExists = await User.findOne({ username});
     if (userExists) {
