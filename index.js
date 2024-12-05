@@ -94,6 +94,13 @@ app.post('/login', async (request, response) => {
     response.redirect('/authenticatedIndex');
 });
 
+//Log out
+app.post('/logout', async (request, response) => {
+    request.session.destroy(() => {
+        response.redirect("/");
+    });
+});
+
 app.get('/signup', async (request, response) => {
     if (request.session.user?.id) {
         return response.redirect('/dashboard');
