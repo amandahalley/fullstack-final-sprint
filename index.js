@@ -45,16 +45,46 @@ let connectedClients = [];
 //Note: Not all routes you need are present here, some are missing and you'll need to add them yourself.
 
 app.ws('/ws', (socket, request) => {
+    console.log("TEST: connected to ws: index: 48");
     connectedClients.push(socket);
 
     socket.on('message', async (message) => {
         const data = JSON.parse(message);
         
+        //checks if message is "vote", which then indicates a vote event
+        if (data.type === "vote") {
+            const { pollId, option } = data;
+            try {
+                //gets poll by id in the database
+                const poll = await Polls.findById(pollId);
+                if (!poll) {
+                    return socket.send(JSON.stringify({ type: 'error', message: 'Poll not found' }));
+                }
+                //find option matching selected answer to update count by 1
+                const optionToUpdate = poll.options.find(opt => opt.answer === option);
+                if (optionToUpdate) {
+                    optionToUpdate.votes += 1;
+                    await poll.save();
+
+                    //notifies clients of the updated vote counts
+                    connectedClients.forEach(client => {
+                        client.send(JSON.stringify({
+                            type: 'voteUpdate',
+                            pollId: pollId,
+                            updatedOptions: poll.options
+                        }));
+                    });
+                }
+            } catch (error) {
+                console.error("Error processing vote:", error);
+                socket.send(JSON.stringify({ type: "error", message: "Error processing vote" }));
+            }
+        }
     });
-    //This should remove disconnected client
-    socket.on('close', async () => {
+
+    //event listener for when connection is closed, disconnects the client 
+    socket.on('close', () => {
         connectedClients = connectedClients.filter(client => client !== socket);
-        
     });
 });
 
@@ -77,6 +107,7 @@ app.get('/login', async (request, response) => {
 app.post('/login', async (request, response) => {
     const {username, password} = request.body;
 
+    console.log("test: login: index :");
     //checks if username exists
     const user = await User.findOne({username});
     if (!user) {
@@ -102,6 +133,7 @@ app.get('/authenticatedIndex', async (request, response) => {
     //get all polls and display them
     const polls = await Polls.find();
     response.render('index/authenticatedIndex', { polls, session: request.session });
+    console.log("test: should have displayed polls: index: 107");
 });
 
 //Log out
@@ -154,8 +186,9 @@ app.get('/dashboard', async (request, response) => {
     }
 
     try {
+        //finds polls in database and renders to the page
         const polls = await Polls.find();
-
+        console.log("testing: found polls");
         return response.render('index/authenticatedIndex', {
             polls: polls,
             user: request.session.user
@@ -172,17 +205,19 @@ app.post('/dashboard', async (request, response) => {
     }
 
     const { question, options } = request.body;
+    //creates array of option objects
     const optionsArray = options.split(',').map(option => ({
         answer: option.trim(),
     }));
 
     try {
+        //creates new poll object using data provided by user
         const newPoll = new Polls({
             question, 
             options: optionsArray,
             creator: request.session.user.id
         });
-
+        //saves poll to database & redirects to dashboard after succful creation of poll
         await newPoll.save();
         response.redirect('/dashboard');
     } catch (error) {
@@ -203,12 +238,12 @@ app.get('/createPoll', async (request, response) => {
     return response.render('createPoll')
 });
 
-// Poll creation
+//poll creation
 app.post('/createPoll', async (request, response) => {
     const { question, options } = request.body;
-    const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
-
-    //checks at least to options are provided and question
+    const formattedOptions = options.split(',').map(option => ({answer: option.trim(), votes: 0}));
+    console.log("testing: about to create poll");
+    //checks at least two options are provided and question
     if (!question || !options || Object.keys(options).length < 2 ) {
         return response.render('createPoll', {errorMessage: "Must contain a question and at least 2 options."})
     }
@@ -220,28 +255,6 @@ app.post('/createPoll', async (request, response) => {
     }
     response.redirect('/authenticatedIndex');
 });
-
-app.post('/vote', async (request, response) => {
-    const { pollId, option } = request.body;
-
-    try {
-        const poll = await Polls.findById(pollId);
-        if (!poll) {
-            return response.status(404).send('Poll not found');
-        }
-
-        const error = await onNewVote(pollId, option);
-        if (error) {
-            return response.status(500).send(error);
-        }
-
-        response.redirect('/authenticatedIndex');
-    } catch (error) {
-        console.error('Error handling vote:', error);
-        response.status(500).send('Error processing your vote');
-    }
-});
-
 
 mongoose.connect(MONGO_URI)
     .then(() => app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`)))
@@ -262,6 +275,7 @@ async function onCreateNewPoll(question, pollOptions) {
         });
         //save poll to database
         await newPoll.save();
+        console.log("testing: new poll created successfully");
         return true; //if creation was successfull
     }
     catch (error) {
@@ -280,38 +294,7 @@ async function onCreateNewPoll(question, pollOptions) {
  * @param {string} selectedOption Which option the user voted for
  */
 async function onNewVote(pollId, selectedOption) {
-    try {
-        // Find the poll by its ID
-        const poll = await Polls.findById(pollId);
-        if (!poll) {
-            return 'Poll not found';
-        }
-
-        // Find the specific option to update
-        const optionToUpdate = poll.options.find(opt => opt.answer === selectedOption);
-        if (!optionToUpdate) {
-            return 'Option not found';
-        }
-
-        // Increment the votes for the selected option
-        optionToUpdate.votes += 1;
-
-        // Save the updated poll to the database
-        await poll.save();
-
-        // Notify all connected clients about the vote update
-        connectedClients.forEach(client => {
-            client.send(JSON.stringify({ type: 'voteUpdate', pollId, updatedOptions: poll.options }));
-        });
-
-        return null; // No error
-    } catch (error) {
-        console.error('Error updating vote:', error);
-        return 'Error updating the vote. Please try again.';
-    }
 }
-
-
 
 //Connection to mongo database
 mongoose.connect(MONGO_URI)
