@@ -16,17 +16,14 @@
                         </li>
                     <% } %>
                 </ul>
-                <form class="poll-form button-container">
+                <form class="poll-form button-container" method="post" action="/vote">
                     <% for (let { answer } of poll.options) { %>
-                        <button 
-                            class="action-button vote-button" 
-                            type="button" 
-                            onclick="onNewVote('<%= poll.id %>', '<%= answer %>')">
+                        <button class="action-button vote-button" type="submit" value="<%= answer %>" name="selectedOption">
                             Vote for <%= answer %>
                         </button>
                     <% } %>
+                    <input type="hidden" value="<%= poll.id %>" name="pollId" />
                 </form>
-                
             </li>
         <% }) %>
     </ul>
