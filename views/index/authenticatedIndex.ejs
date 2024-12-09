@@ -1,8 +1,7 @@
 <!-- TODO: Header? -->
 <div class="main-content">
     <h1>Active Polls</h1>
-    <!-- This is an example of how you can render the polls on the page, you're welcome to keep it or change it if you wish. This page isn't fully complete though -->
-    <!-- added logic for message if no polls are avaiable -->
+    <!-- Added logic for a message if no polls are available -->
     <% if (polls.length === 0) { %>
         <p>There are currently no polls available, please check back later.</p>
     <% } else { %>
@@ -11,7 +10,7 @@
             <li class="poll-container" id="<%= poll.id %>">
                 <h2><%= poll.question %></h2>
                 <ul class="poll-options">
-                    <% for (let {answer, votes } of poll.options) { %>
+                    <% for (let { answer, votes } of poll.options) { %>
                         <li id="<%= poll.id %>_<%= answer %>">
                             <strong><%= answer %>:</strong> <%= votes %> votes
                         </li>
@@ -19,17 +18,25 @@
                 </ul>
                 <form class="poll-form button-container">
                     <% for (let { answer } of poll.options) { %>
-                        <button class="action-button vote-button" type="submit" value="<%= answer %>" name="poll-option">
+                        <button 
+                            class="action-button vote-button" 
+                            type="button" 
+                            onclick="onNewVote('<%= poll.id %>', '<%= answer %>')">
                             Vote for <%= answer %>
                         </button>
                     <% } %>
-                    <input type="text" style="display: none;" value="<%= poll.id %>" name="poll-id"/>
                 </form>
+                
             </li>
         <% }) %>
     </ul>
     <% } %>
 </div>
+
+<a href="/createPoll">
+    <button>Create a new poll</button>
+</a>
 <script src="/frontend.js" type="application/javascript"></script>
 </body>
 </html>
+
