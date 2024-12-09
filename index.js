@@ -18,13 +18,13 @@ const userSchema = new mongoose.Schema({
 })
 
 const pollSchema = new mongoose.Schema({
-    question: {type:String, required: true},
+    question: {type: String, required: true},
     options: [{
-        question: {type: String, required: true},
-    
+        answer: {type: String, required: true},
         votes: {type: Number, required: true, default: 0}
     }]
 });
+
 
 const User = mongoose.model('User', userSchema);
 const Polls = mongoose.model('Poll', pollSchema);
@@ -153,9 +153,42 @@ app.get('/dashboard', async (request, response) => {
         return response.redirect('/');
     }
 
-    //TODO: Fix the polls, this should contain all polls that are active. I'd recommend taking a look at the
-    //authenticatedIndex template to see how it expects polls to be represented
-    return response.render('index/authenticatedIndex', { polls: [] });
+    try {
+        const polls = await Polls.find();
+
+        return response.render('index/authenticatedIndex', {
+            polls: polls,
+            user: request.session.user
+        });
+    } catch (error) {
+        console.error("Error getting polls", error);
+        response.status(500).send("Error getting polls");
+    }
+});
+
+app.post('/dashboard', async (request, response) => {
+    if (!request.session.user?.id) {
+        return response.redirect("/");
+    }
+
+    const { question, options } = request.body;
+    const optionsArray = options.split(',').map(option => ({
+        answer: option.trim(),
+    }));
+
+    try {
+        const newPoll = new Polls({
+            question, 
+            options: optionsArray,
+            creator: request.session.user.id
+        });
+
+        await newPoll.save();
+        response.redirect('/dashboard');
+    } catch (error) {
+        console.error("Error creating poll", error);
+        response.status(500).send("Error creating poll");
+    }
 });
 
 app.get('/profile', async (request, response) => {
@@ -185,8 +218,30 @@ app.post('/createPoll', async (request, response) => {
     if (pollCreationError) {
         return response.render('createPoll', {errorMessage: "Error creating poll.", session: request.session});
     }
-    response.redirect('/dashboard');
+    response.redirect('/authenticatedIndex');
 });
+
+app.post('/vote', async (request, response) => {
+    const { pollId, option } = request.body;
+
+    try {
+        const poll = await Polls.findById(pollId);
+        if (!poll) {
+            return response.status(404).send('Poll not found');
+        }
+
+        const error = await onNewVote(pollId, option);
+        if (error) {
+            return response.status(500).send(error);
+        }
+
+        response.redirect('/authenticatedIndex');
+    } catch (error) {
+        console.error('Error handling vote:', error);
+        response.status(500).send('Error processing your vote');
+    }
+});
+
 
 mongoose.connect(MONGO_URI)
     .then(() => app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`)))
@@ -226,12 +281,37 @@ async function onCreateNewPoll(question, pollOptions) {
  */
 async function onNewVote(pollId, selectedOption) {
     try {
-        
-    }
-    catch (error) {
-        console.error('Error updating poll:', error);
+        // Find the poll by its ID
+        const poll = await Polls.findById(pollId);
+        if (!poll) {
+            return 'Poll not found';
+        }
+
+        // Find the specific option to update
+        const optionToUpdate = poll.options.find(opt => opt.answer === selectedOption);
+        if (!optionToUpdate) {
+            return 'Option not found';
+        }
+
+        // Increment the votes for the selected option
+        optionToUpdate.votes += 1;
+
+        // Save the updated poll to the database
+        await poll.save();
+
+        // Notify all connected clients about the vote update
+        connectedClients.forEach(client => {
+            client.send(JSON.stringify({ type: 'voteUpdate', pollId, updatedOptions: poll.options }));
+        });
+
+        return null; // No error
+    } catch (error) {
+        console.error('Error updating vote:', error);
+        return 'Error updating the vote. Please try again.';
     }
 }
+
+
 
 //Connection to mongo database
 mongoose.connect(MONGO_URI)
