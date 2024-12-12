@@ -160,3 +160,16 @@ button.action-button:hover {
     color: rgba(93, 142, 251, 0.8);
     cursor: pointer;
 }
+
+
+/* nav styling */
+
+.navbar {
+    display: flex; 
+    justify-content: space-around; 
+    background-color: #333; 
+    padding: 1rem; 
+}
+
+
+
