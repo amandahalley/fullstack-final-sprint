@@ -21,9 +21,11 @@ const pollSchema = new mongoose.Schema({
     question: {type: String, required: true},
     options: [{
         answer: {type: String, required: true},
-        votes: {type: Number, required: true, default: 0}
+        votes: {type: Number, required: true, default: 0},
+        voters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] // Add voters array to track users who voted
     }]
 });
+
 
 
 const User = mongoose.model('User', userSchema);
@@ -226,9 +228,25 @@ app.post('/dashboard', async (request, response) => {
     }
 });
 
+
 app.get('/profile', async (request, response) => {
+    const user = request.session.user; //get user from session
+    if (!user) {
+        return response.redirect('/login'); //redirect to login if not authenticated
+    }
+
+    const polls = await Polls.find(); //get all polls
     
+    const userVotes = polls.reduce((count, poll) => {
+        //check if the user is in the voters array for each option
+        return count + poll.options.filter(option => option.voters.includes(user.id)).length;
+    }, 0);
+
+    response.render('profile', { name: user.username, votesCount: userVotes }); 
 });
+
+
+
 
 app.get('/createPoll', async (request, response) => {
     if (!request.session.user?.id) {
