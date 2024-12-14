@@ -9,6 +9,7 @@ socket.addEventListener('message', (event) => {
     if (data.type === "newPoll") {
         onNewPollAdded(data);
     } else if (data.type === "voteUpdate") {
+        console.log("testing: frontEnd: voteUpdate");
         onIncomingVote(data);
     }
 
@@ -38,7 +39,7 @@ function onNewPollAdded(data) {
                 ${option.answer}
             </label>
         `).join('')}
-        <input type="hidden" name="poll-id" value="${data.id}">
+        <input type="hidden" name="pollId" value="${data.id}">
         <button type="submit">Vote</button>
     </form>
 `;
@@ -48,8 +49,25 @@ function onNewPollAdded(data) {
     //      as to what you might want to do to get clicking the vote options to actually communicate with the server
     newPoll.querySelectorAll('.poll-form').forEach((pollForm) => {
         console.log("testing: trying to add event listener to polls");
+        newPoll.setAttribute('id', data.id);
         pollForm.addEventListener('submit', onVoteClicked);
     });
+}
+
+// Function to send the vote to the server
+function sendVote(pollId, selectedOption) {
+    const userId = sessionStorage.getItem('userId'); // Get the userId from sessionStorage
+    if (!userId) {
+        console.error('User ID is not set');
+        return; // Stop execution if the user is not logged in or userId is missing
+    }
+    
+    socket.send(JSON.stringify({
+        type: 'vote',
+        pollId,
+        option: selectedOption,
+        userId: userId // Include userId in the message sent to the server
+    }));
 }
 
 /**
@@ -74,7 +92,7 @@ function onIncomingVote(data) {
         let optionsContainer = pollElement.querySelector(".poll-options");
         optionsContainer.innerHTML = '';
 
-        //loop through options displaying each option answer/votecount
+        //loop through options displaying each option
         updatedOptions.forEach(({ answer, votes }) => {
             optionsContainer.innerHTML += `<li><strong>${answer}:</strong> ${votes} votes</li>`;
         });
@@ -84,6 +102,8 @@ function onIncomingVote(data) {
         console.error("Poll with ID " + pollId + " not found on the page.");
     }
 }
+
+
 
 /**
  * Handles processing a user's vote when they click on an option to vote

@@ -14,18 +14,17 @@ const SALT_ROUNDS = 10;
 
 const userSchema = new mongoose.Schema({
     username: {type: String, required: true},
-    password: {type: String, required: true}
+    password: {type: String, required: true},
+    pollsVoted: {type: Number, required: true, default: 0}
 })
 
 const pollSchema = new mongoose.Schema({
     question: {type: String, required: true},
     options: [{
         answer: {type: String, required: true},
-        votes: {type: Number, required: true, default: 0},
-        voters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] // Add voters array to track users who voted
-    }]
+        votes: {type: Number, required: true, default: 0} 
+    }],
 });
-
 
 
 const User = mongoose.model('User', userSchema);
@@ -52,10 +51,10 @@ app.ws('/ws', (socket, request) => {
 
     socket.on('message', async (message) => {
         const data = JSON.parse(message);
-        
+        console.log('Received message:', data); 
         //checks if message is "vote", which then indicates a vote event
         if (data.type === "vote") {
-            const { pollId, option } = data;
+            const { pollId, option, username } = data; // Changed userId to username
             try {
                 //gets poll by id in the database
                 const poll = await Polls.findById(pollId);
@@ -68,12 +67,22 @@ app.ws('/ws', (socket, request) => {
                     optionToUpdate.votes += 1;
                     await poll.save();
 
+                    // Find the user by username and increment pollsVoted
+                    const user = await User.findOne({ username }); // Find by username instead of userId
+                    if (user) {
+                        user.pollsVoted += 1;
+                        await user.save();
+                    }
+
+                    console.log("testing: about to send vote update:");
+                    
                     //notifies clients of the updated vote counts
                     connectedClients.forEach(client => {
                         client.send(JSON.stringify({
                             type: 'voteUpdate',
                             pollId: pollId,
-                            updatedOptions: poll.options
+                            updatedOptions: poll.options,
+                            
                         }));
                     });
                 }
@@ -89,6 +98,71 @@ app.ws('/ws', (socket, request) => {
         connectedClients = connectedClients.filter(client => client !== socket);
     });
 });
+
+
+// app.ws('/ws', (socket, request) => {
+//     console.log("TEST: connected to ws: index: 48");
+//     connectedClients.push(socket);
+
+//     socket.on('message', async (message) => {
+//         const data = JSON.parse(message);
+//         console.log('Received message:', data); 
+//         //checks if message is "vote", which then indicates a vote event
+//         if (data.type === "vote") {
+//             const { pollId, option, userId } = data;
+//             console.log('Poll ID:', pollId, 'Option:', option, 'User ID:', userId);
+//             try {
+//                 //gets poll by id in the database
+//                 const poll = await Polls.findById(pollId);
+//                 if (!poll) {
+//                     return socket.send(JSON.stringify({ type: 'error', message: 'Poll not found' }));
+//                 }
+//                 //find option matching selected answer to update count by 1
+//                 const optionToUpdate = poll.options.find(opt => opt.answer === option);
+//                 if (optionToUpdate) {
+//                     optionToUpdate.votes += 1;
+//                     await poll.save();
+
+//                     // Find the user and increment pollsVoted
+//                     const userId = data.userId; // Make sure the frontend sends the userId
+//                     const user = await User.findById(userId);
+//                     if (user) {
+//                         user.pollsVoted += 1;
+//                         await user.save();
+//                     }
+                    
+//                     // get the username
+//                     // use User.findOne() to lookup the user
+//                     // increment pollsVoted by one
+
+//                     // const { username } = request.body;
+//                     // const userExists = await User.findOne({ username});
+//                     // userExists.pollsVoted += 1;
+
+//                     console.log("testing: about to send vote update:");
+                    
+
+//                     //notifies clients of the updated vote counts
+//                     connectedClients.forEach(client => {
+//                         client.send(JSON.stringify({
+//                             type: 'voteUpdate',
+//                             pollId: pollId,
+//                             updatedOptions: poll.options
+//                         }));
+//                     });
+//                 }
+//             } catch (error) {
+//                 console.error("Error processing vote:", error);
+//                 socket.send(JSON.stringify({ type: "error", message: "Error processing vote" }));
+//             }
+//         }
+//     });
+
+//     //event listener for when connection is closed, disconnects the client 
+//     socket.on('close', () => {
+//         connectedClients = connectedClients.filter(client => client !== socket);
+//     });
+// });
 
 app.get('/', async (request, response) => {
 
@@ -109,7 +183,7 @@ app.get('/login', async (request, response) => {
 app.post('/login', async (request, response) => {
     const {username, password} = request.body;
 
-    console.log("test: login: index :");
+    console.log("test: login: index :" + request.body);
     //checks if username exists
     const user = await User.findOne({username});
     if (!user) {
@@ -208,6 +282,7 @@ app.post('/dashboard', async (request, response) => {
 
     const { question, options } = request.body;
     //creates array of option objects
+    console.log(typeof options)
     const optionsArray = options.split(',').map(option => ({
         answer: option.trim(),
     }));
@@ -228,24 +303,29 @@ app.post('/dashboard', async (request, response) => {
     }
 });
 
-
 app.get('/profile', async (request, response) => {
-    const user = request.session.user; //get user from session
+    const user = request.session.user; // get user from session
     if (!user) {
-        return response.redirect('/login'); //redirect to login if not authenticated
+        return response.redirect('/login'); // redirect to login if not authenticated
     }
 
-    const polls = await Polls.find(); //get all polls
-    
-    const userVotes = polls.reduce((count, poll) => {
-        //check if the user is in the voters array for each option
-        return count + poll.options.filter(option => option.voters.includes(user.id)).length;
-    }, 0);
+    try {
+        // Retrieve the user document by ID to get the pollsVoted field
+        const userData = await User.findById(user.id);
 
-    response.render('profile', { name: user.username, votesCount: userVotes }); 
+        if (!userData) {
+            return response.status(404).send('User not found');
+        }
+
+        // Use the pollsVoted field to get the vote count
+        const votesCount = userData.pollsVoted;
+
+        response.render('profile', { name: user.username, votesCount });
+    } catch (error) {
+        console.error('Error retrieving user profile data:', error);
+        response.status(500).send('Error retrieving profile data');
+    }
 });
-
-
 
 
 app.get('/createPoll', async (request, response) => {
@@ -259,11 +339,13 @@ app.get('/createPoll', async (request, response) => {
 //poll creation
 app.post('/createPoll', async (request, response) => {
     const { question, options } = request.body;
-    const formattedOptions = options.split(',').map(option => ({answer: option.trim(), votes: 0}));
+    console.log("options", options);
+    console.log(typeof options);
+    const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
     console.log("testing: about to create poll");
     //checks at least two options are provided and question
     if (!question || !options || Object.keys(options).length < 2 ) {
-        return response.render('createPoll', {errorMessage: "Must contain a question and at least 2 options."})
+        return response.render('creatPoll', {errorMessage: "Must contain a question and at least 2 options."})
     }
 
     //sends error message if error occurs creating poll and redirects to dashboard
@@ -291,13 +373,13 @@ async function onCreateNewPoll(question, pollOptions) {
             question,
             options: pollOptions
         });
+        console.log("Attempting to save poll to DB");
         //save poll to database
         await newPoll.save();
-        console.log("testing: new poll created successfully");
-        return true; //if creation was successfull
-    }
-    catch (error) {
-        console.error(error);
+        console.log("Poll saved successfully:", newPoll);
+        return true; //if creation was successful
+    } catch (error) {
+        console.error("Error in poll creation:", error);
         return "Error creating the poll, please try again";
     }
 }
