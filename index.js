@@ -46,12 +46,11 @@ let connectedClients = [];
 //Note: Not all routes you need are present here, some are missing and you'll need to add them yourself.
 
 app.ws('/ws', (socket, request) => {
-    console.log("TEST: connected to ws: index: 48");
     connectedClients.push(socket);
 
     socket.on('message', async (message) => {
         const data = JSON.parse(message);
-        console.log('Received message:', data); 
+    
         //checks if message is "vote", which then indicates a vote event
         if (data.type === "vote") {
             const { pollId, option } = data;
@@ -70,14 +69,11 @@ app.ws('/ws', (socket, request) => {
 
                     //find user by username and increment pollsVoted
                     const user = await User.findOne({ username });
-                    console.log(user);
+                    
                     if (user) {
-                        console.log(user, "testmessges")
                         user.pollsVoted += 1;
                         await user.save();
                     }
-
-                    console.log("testing: about to send vote update:");
                     
                     //notifies clients of the updated vote counts
                     connectedClients.forEach(client => {
@@ -126,7 +122,6 @@ app.post('/logout', async(request, response) =>{
 app.post('/login', async (request, response) => {
     const {username, password} = request.body;
 
-    console.log("test: login: index :" + request.body);
     //checks if username exists
     const user = await User.findOne({username});
     if (!user) {
@@ -141,8 +136,6 @@ app.post('/login', async (request, response) => {
 
     //redirects to authenticatedIndex if username and password is correct.
     request.session.user = {id: user.id, username: user.username}
-    console.log("sign inn");
-    console.log(username);
     response.redirect('/authenticatedIndex');
 });
 
@@ -155,8 +148,6 @@ app.get('/authenticatedIndex', async (request, response) => {
     //get all polls and display them
     const polls = await Polls.find();
     response.render('index/authenticatedIndex', { polls, session: request.session });
-    console.log("test: should have displayed polls: index: 107");
-    console.log(username, "test")
 });
 
 
@@ -176,8 +167,6 @@ app.get('/signup', async (request, response) => {
 
 app.post('/signup', async (request, response) => {
     const {username, password} = request.body;
-    console.log('Username:', username);
-    console.log('Password:', password);
 
     //check for existing username
     const userExists = await User.findOne({ username});
@@ -211,7 +200,6 @@ app.get('/dashboard', async (request, response) => {
     try {
         //finds polls in database and renders to the page
         const polls = await Polls.find();
-        console.log("testing: found polls");
         return response.render('index/authenticatedIndex', {
             polls: polls,
             user: request.session.user
@@ -229,7 +217,6 @@ app.post('/dashboard', async (request, response) => {
 
     const { question, options } = request.body;
     //creates array of option objects
-    console.log(typeof options)
     const optionsArray = options.split(',').map(option => ({
         answer: option.trim(),
     }));
@@ -286,10 +273,7 @@ app.get('/createPoll', async (request, response) => {
 //poll creation
 app.post('/createPoll', async (request, response) => {
     const { question, options } = request.body;
-    console.log("options", options);
-    console.log(typeof options);
     const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
-    console.log("testing: about to create poll");
     //checks at least two options are provided and question
     if (!question || !options || Object.keys(options).length < 2 ) {
         return response.render('creatPoll', {errorMessage: "Must contain a question and at least 2 options."})
