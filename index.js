@@ -54,7 +54,8 @@ app.ws('/ws', (socket, request) => {
         console.log('Received message:', data); 
         //checks if message is "vote", which then indicates a vote event
         if (data.type === "vote") {
-            const { pollId, option, username } = data; // Changed userId to username
+            const { pollId, option } = data;
+            const { username } = request.session.user; // Changed userId to username
             try {
                 //gets poll by id in the database
                 const poll = await Polls.findById(pollId);
@@ -69,7 +70,9 @@ app.ws('/ws', (socket, request) => {
 
                     // Find the user by username and increment pollsVoted
                     const user = await User.findOne({ username }); // Find by username instead of userId
+                    console.log(user);
                     if (user) {
+                        console.log(user, "testmessges")
                         user.pollsVoted += 1;
                         await user.save();
                     }
@@ -180,6 +183,10 @@ app.get('/login', async (request, response) => {
     response.render("login");
 });
 
+app.get('/logout', async () => {
+    console.log("testing: in logout get");
+});
+
 app.post('/login', async (request, response) => {
     const {username, password} = request.body;
 
@@ -197,11 +204,14 @@ app.post('/login', async (request, response) => {
     }
 
     //redirects to authenticatedIndex if username and password is correct.
-    request.session.user = {id: user._id, username: user.username}
+    request.session.user = {id: user.id, username: user.username}
+    console.log("sign inn");
+    console.log(username);
     response.redirect('/authenticatedIndex');
 });
 
 app.get('/authenticatedIndex', async (request, response) => {
+    const username = request.session.user;
     //check if user is logged in, redirect to home page if not
     if (!request.session.user?.id) {
         return response.redirect('/');
@@ -210,6 +220,7 @@ app.get('/authenticatedIndex', async (request, response) => {
     const polls = await Polls.find();
     response.render('index/authenticatedIndex', { polls, session: request.session });
     console.log("test: should have displayed polls: index: 107");
+    console.log(username, "test")
 });
 
 //Log out
