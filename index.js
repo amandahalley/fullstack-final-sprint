@@ -55,7 +55,7 @@ app.ws('/ws', (socket, request) => {
         //checks if message is "vote", which then indicates a vote event
         if (data.type === "vote") {
             const { pollId, option } = data;
-            const { username } = request.session.user; // Changed userId to username
+            const { username } = request.session.user;
             try {
                 //gets poll by id in the database
                 const poll = await Polls.findById(pollId);
@@ -68,8 +68,8 @@ app.ws('/ws', (socket, request) => {
                     optionToUpdate.votes += 1;
                     await poll.save();
 
-                    // Find the user by username and increment pollsVoted
-                    const user = await User.findOne({ username }); // Find by username instead of userId
+                    //find user by username and increment pollsVoted
+                    const user = await User.findOne({ username });
                     console.log(user);
                     if (user) {
                         console.log(user, "testmessges")
@@ -102,71 +102,6 @@ app.ws('/ws', (socket, request) => {
     });
 });
 
-
-// app.ws('/ws', (socket, request) => {
-//     console.log("TEST: connected to ws: index: 48");
-//     connectedClients.push(socket);
-
-//     socket.on('message', async (message) => {
-//         const data = JSON.parse(message);
-//         console.log('Received message:', data); 
-//         //checks if message is "vote", which then indicates a vote event
-//         if (data.type === "vote") {
-//             const { pollId, option, userId } = data;
-//             console.log('Poll ID:', pollId, 'Option:', option, 'User ID:', userId);
-//             try {
-//                 //gets poll by id in the database
-//                 const poll = await Polls.findById(pollId);
-//                 if (!poll) {
-//                     return socket.send(JSON.stringify({ type: 'error', message: 'Poll not found' }));
-//                 }
-//                 //find option matching selected answer to update count by 1
-//                 const optionToUpdate = poll.options.find(opt => opt.answer === option);
-//                 if (optionToUpdate) {
-//                     optionToUpdate.votes += 1;
-//                     await poll.save();
-
-//                     // Find the user and increment pollsVoted
-//                     const userId = data.userId; // Make sure the frontend sends the userId
-//                     const user = await User.findById(userId);
-//                     if (user) {
-//                         user.pollsVoted += 1;
-//                         await user.save();
-//                     }
-                    
-//                     // get the username
-//                     // use User.findOne() to lookup the user
-//                     // increment pollsVoted by one
-
-//                     // const { username } = request.body;
-//                     // const userExists = await User.findOne({ username});
-//                     // userExists.pollsVoted += 1;
-
-//                     console.log("testing: about to send vote update:");
-                    
-
-//                     //notifies clients of the updated vote counts
-//                     connectedClients.forEach(client => {
-//                         client.send(JSON.stringify({
-//                             type: 'voteUpdate',
-//                             pollId: pollId,
-//                             updatedOptions: poll.options
-//                         }));
-//                     });
-//                 }
-//             } catch (error) {
-//                 console.error("Error processing vote:", error);
-//                 socket.send(JSON.stringify({ type: "error", message: "Error processing vote" }));
-//             }
-//         }
-//     });
-
-//     //event listener for when connection is closed, disconnects the client 
-//     socket.on('close', () => {
-//         connectedClients = connectedClients.filter(client => client !== socket);
-//     });
-// });
-
 app.get('/', async (request, response) => {
 
     if (request.session.user?.id) {
@@ -183,8 +118,9 @@ app.get('/login', async (request, response) => {
     response.render("login");
 });
 
-app.get('/logout', async () => {
-    console.log("testing: in logout get");
+app.post('/logout', async(request, response) =>{
+    request.session.destroy();
+    response.redirect('/dashboard')
 });
 
 app.post('/login', async (request, response) => {
@@ -223,7 +159,7 @@ app.get('/authenticatedIndex', async (request, response) => {
     console.log(username, "test")
 });
 
-//Log out
+
 app.post('/logout', async (request, response) => {
     request.session.destroy(() => {
         response.redirect("/");
@@ -258,7 +194,7 @@ app.post('/signup', async (request, response) => {
         await newUser.save();
         request.session.user = {id: newUser._id, username: newUser.username};
 
-        //Redirect to dashboard once created
+        //redirect to dashboard once created
         response.redirect('/dashboard');
     } catch (error) {
         console.error("Signup error: ", error);
@@ -315,20 +251,20 @@ app.post('/dashboard', async (request, response) => {
 });
 
 app.get('/profile', async (request, response) => {
-    const user = request.session.user; // get user from session
+    const user = request.session.user; //get user from session
     if (!user) {
-        return response.redirect('/login'); // redirect to login if not authenticated
+        return response.redirect('/login'); //redirect to login if not authenticated
     }
 
     try {
-        // Retrieve the user document by ID to get the pollsVoted field
+        //retrieve the user document by ID to get the pollsVoted field
         const userData = await User.findById(user.id);
 
         if (!userData) {
             return response.status(404).send('User not found');
         }
 
-        // Use the pollsVoted field to get the vote count
+        //use the pollsVoted field to get the vote count
         const votesCount = userData.pollsVoted;
 
         response.render('profile', { name: user.username, votesCount });
