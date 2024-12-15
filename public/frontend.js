@@ -5,11 +5,10 @@ const socket = new WebSocket('ws://localhost:3000/ws');
 socket.addEventListener('message', (event) => {
     const data = JSON.parse(event.data);
 
-    console.log("test");
     if (data.type === "newPoll") {
         onNewPollAdded(data);
     } else if (data.type === "voteUpdate") {
-        console.log("testing: frontEnd: voteUpdate");
+
         onIncomingVote(data);
     }
 
@@ -48,7 +47,6 @@ function onNewPollAdded(data) {
     //TODO: Add event listeners to each vote button. This code might not work, it depends how you structure your polls on the poll page. However, it's left as an example 
     //      as to what you might want to do to get clicking the vote options to actually communicate with the server
     newPoll.querySelectorAll('.poll-form').forEach((pollForm) => {
-        console.log("testing: trying to add event listener to polls");
         newPoll.setAttribute('id', data.id);
         pollForm.addEventListener('submit', onVoteClicked);
     });
@@ -95,8 +93,6 @@ function onIncomingVote(data) {
         updatedOptions.forEach(({ answer, votes }) => {
             optionsContainer.innerHTML += `<li><strong>${answer}:</strong> ${votes} votes</li>`;
         });
-
-        console.log("Vote updated for pollId: " + pollId);
     } else {
         console.error("Poll with ID " + pollId + " not found on the page.");
     }
@@ -113,12 +109,10 @@ function onVoteClicked(event) {
     //Note: This function only works if your structure for displaying polls on the page hasn't changed from the template. If you change the template, you'll likely need to change this too
     event.preventDefault();
     const formData = new FormData(event.target);
-
     const pollId = formData.get("pollId");
     const selectedOption = event.submitter.value;
     
     //TOOD: Tell the server the user voted
-    console.log(`Poll ID: ${pollId}, Selected Option: ${selectedOption}`);
     socket.send(JSON.stringify({type: 'vote', pollId, option: selectedOption}));
 }
 
