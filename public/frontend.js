@@ -56,17 +56,17 @@ function onNewPollAdded(data) {
 
 // Function to send the vote to the server
 function sendVote(pollId, selectedOption) {
-    const userId = sessionStorage.getItem('userId'); // Get the userId from sessionStorage
+    const userId = sessionStorage.getItem('userId'); //get the userId from sessionStorage
     if (!userId) {
         console.error('User ID is not set');
-        return; // Stop execution if the user is not logged in or userId is missing
+        return; 
     }
     
     socket.send(JSON.stringify({
         type: 'vote',
         pollId,
         option: selectedOption,
-        username: username // Include userId in the message sent to the server
+        username: username
     }));
 }
 
@@ -84,7 +84,6 @@ function onIncomingVote(data) {
 
     const pollId = data.pollId;
     const updatedOptions = data.updatedOptions;
-    
     const pollElement = document.getElementById(pollId);
 
     //if poll element exists, find container that holds the options, clearing existing options befor updating poll count
