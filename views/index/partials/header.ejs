@@ -1,6 +1,15 @@
-<nav class="navbar">
-  <a href="/" class="nav-item">Home</a>
-  <a href="/profile" class="nav-item">Profile</a>
-  <a href="/unauthenticatedIndex" class="nav-item">Log Out</a>
-</nav>
-
+<head>
+  <link rel="stylesheet" href="/styles.css" />
+  <nav class="navbar">
+    <div class="nav-left">
+      <a href="/" class="nav-item">Home</a>
+      <a href="/profile" class="nav-item">Profile</a>
+      <a href ="/createPoll" class="nav-item">Create Poll</a>
+    </div>
+    <div class="nav-right">
+      <form action="/logout" method="POST" style="display: inline;">
+        <button type="submit" class="nav-item logout-button">Log Out</button>
+      </form>
+    </div>
+  </nav>
+</head>
