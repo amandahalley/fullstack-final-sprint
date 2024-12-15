@@ -66,7 +66,7 @@ function sendVote(pollId, selectedOption) {
         type: 'vote',
         pollId,
         option: selectedOption,
-        userId: userId // Include userId in the message sent to the server
+        username: username // Include userId in the message sent to the server
     }));
 }
 
