@@ -10,6 +10,13 @@ body {
     
 }
 
+.error-message {
+    color: yellow;
+    font-weight: bold;
+    margin-top: 10px;
+    justify-content: center;
+}
+
 .main-content {
     display: flex;
     justify-content: center;
@@ -113,16 +120,6 @@ body {
 .register-link:hover {
     background: rgba(93,142,251,1);
     color: #F6F6F6;
-}
-
-.error-message {
-    display: flex;
-    flex: 1;
-    align-self: center;
-    color: yellow;
-    font-weight: bold;
-    font-size: 16px;
-    margin-top: 0px;
 }
 
 .poll-container {
