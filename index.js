@@ -114,11 +114,6 @@ app.get('/login', async (request, response) => {
     response.render("login");
 });
 
-app.post('/logout', async(request, response) =>{
-    request.session.destroy();
-    response.redirect('/dashboard')
-});
-
 app.post('/login', async (request, response) => {
     const {username, password} = request.body;
 
@@ -137,6 +132,11 @@ app.post('/login', async (request, response) => {
     //redirects to authenticatedIndex if username and password is correct.
     request.session.user = {id: user.id, username: user.username}
     response.redirect('/authenticatedIndex');
+});
+
+app.post('/logout', async(request, response) =>{
+    request.session.destroy();
+    response.redirect('/dashboard')
 });
 
 app.get('/authenticatedIndex', async (request, response) => {
@@ -276,7 +276,7 @@ app.post('/createPoll', async (request, response) => {
     const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
     //checks at least two options are provided and question
     if (!question || !options || Object.keys(options).length < 2 ) {
-        return response.render('creatPoll', {errorMessage: "Must contain a question and at least 2 options."})
+        return response.render('createPoll', {errorMessage: "Must contain a question and at least 2 options."})
     }
 
     //sends error message if error occurs creating poll and redirects to dashboard
