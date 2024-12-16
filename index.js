@@ -199,7 +199,7 @@ app.get('/dashboard', async (request, response) => {
 
     try {
         //finds polls in database and renders to the page
-        const polls = await Polls.find();
+        const polls = await Polls.find() 
         return response.render('index/authenticatedIndex', {
             polls: polls,
             user: request.session.user
@@ -226,7 +226,7 @@ app.post('/dashboard', async (request, response) => {
         const newPoll = new Polls({
             question, 
             options: optionsArray,
-            creator: request.session.user.id
+            
         });
         //saves poll to database & redirects to dashboard after succful creation of poll
         await newPoll.save();
@@ -284,7 +284,6 @@ app.post('/createPoll', async (request, response) => {
     if (pollCreationError) {
         return response.render('createPoll', {errorMessage: "Error creating poll.", session: request.session});
     }
-    response.redirect('/authenticatedIndex');
 });
 
 mongoose.connect(MONGO_URI)
