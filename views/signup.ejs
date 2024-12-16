@@ -4,10 +4,11 @@
 
 <div class="main-content">
     <h1>Sign Up</h1>
+    <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+        <p class="error-message"><%= errorMessage %></p>
+    <% } %>
     <form action="/signup" method="post" style="width: 300px;">
-        <% if (errorMessage) { %>
-            <p class="error-message"><%= errorMessage %></p>
-        <% } %>
+       
         <div class="form-input-container">
             <label for="username">Username:</label>
             <input type="text" id="username" name="username" required>

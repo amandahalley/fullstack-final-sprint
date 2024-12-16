@@ -5,6 +5,10 @@
 <div class="main-content">
     <h1>Login</h1>
 
+    <% if (typeof errorMessage !== 'undefined') { %>
+        <p class="error-message"><%= errorMessage %></p>
+    <% } %>
+
     <form action="/login" method="POST" style="width: 300px;">
         <div class="form-input-container">
             <label for="username">Username:</label>
